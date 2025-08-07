@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>메모리</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 로그인 화면 -->
+    <div id="login-section" class="centered">
+      <h1>메모리</h1>
+      <form id="login-form">
+        <input type="text" id="login-username" placeholder="아이디" required />
+        <input type="password" id="login-password" placeholder="비밀번호" required />
+        <button type="submit">로그인</button>
+        <div id="login-error" class="error"></div>
+      </form>
+      <div class="register-link">계정이 없으신가요? <a href="#" id="show-register">회원가입</a></div>
+    </div>
+    <!-- 회원가입 화면 -->
+    <div id="register-section" class="centered" style="display:none;">
+      <h1>회원가입</h1>
+      <form id="register-form">
+        <input type="text" id="register-username" placeholder="아이디" required />
+        <input type="password" id="register-password" placeholder="비밀번호" required />
+        <button type="submit">회원가입</button>
+        <div id="register-error" class="error"></div>
+      </form>
+      <div class="register-link">이미 계정이 있으신가요? <a href="#" id="show-login">로그인</a></div>
+    </div>
+    <!-- 메인 화면 (로그인 후) -->
+    <div id="main-section" style="display:none;">
+      <header>
+        <h1>메모리</h1>
+        <button id="logout-btn">로그아웃</button>
+      </header>
+      <nav>
+        <button id="view-list">리스트</button>
+        <button id="view-calendar">달력</button>
+      </nav>
+      <!-- 기록 입력/수정 폼 -->
+      <section id="record-form-section">
+        <form id="record-form">
+          <input type="text" id="record-title" placeholder="제목" required />
+          <textarea id="record-content" placeholder="내용" required></textarea>
+          <input type="date" id="record-date" required />
+          <button type="submit">저장</button>
+          <button type="button" id="cancel-edit" style="display:none;">취소</button>
+        </form>
+      </section>
+      <!-- 기록 리스트 뷰 -->
+      <section id="list-section">
+        <form id="list-quick-add-form" style="display:flex;flex-direction:column;gap:0.5em;margin-bottom:1em;max-width:600px;margin-left:auto;margin-right:auto;">
+          <input type="text" id="list-quick-title" placeholder="제목" required style="font-size:1em;padding:0.6em 1em;border-radius:0.7em;border:1px solid #a3bffa;" />
+          <textarea id="list-quick-content" placeholder="내용" style="font-size:1em;padding:0.6em 1em;border-radius:0.7em;border:1px solid #a3bffa;resize:vertical;min-height:2em;"></textarea>
+          <input type="date" id="list-quick-date" required style="font-size:1em;padding:0.6em 1em;border-radius:0.7em;border:1px solid #a3bffa;max-width:200px;" />
+          <div style="display:flex;gap:0.7em;">
+            <button type="submit" style="font-size:1em;padding:0.5em 1.2em;background:#a3bffa;color:#fff;border:none;border-radius:0.7em;">저장</button>
+            <button type="reset" style="font-size:1em;padding:0.5em 1.2em;background:#eee;color:#444;border:none;border-radius:0.7em;">초기화</button>
+          </div>
+        </form>
+        <input type="text" id="search-records" placeholder="기록 검색..." style="width:100%;max-width:600px;margin:0 auto 1rem auto;display:block;padding:0.7rem 1rem;border-radius:0.7rem;border:1px solid #e0e7ff;background:#f0f4ff;" />
+        <ul id="record-list"></ul>
+        <div id="record-pagination" style="display:flex;justify-content:center;align-items:center;gap:0.5em;margin:1.5em 0 0.5em 0;"></div>
+      </section>
+      <!-- 달력 뷰 -->
+      <section id="calendar-section" style="display:none;">
+        <div id="calendar"></div>
+      </section>
+      <!-- 달력 확대 뷰 (모달) -->
+      <div id="calendar-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+          <span class="close" id="close-calendar-modal">&times;</span>
+          <div id="calendar-modal-date" class="modal-date"></div>
+          <ul id="calendar-modal-records"></ul>
+        </div>
+      </div>
+      <!-- 기록 내용 팝업(모달) -->
+      <div id="record-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+          <span class="close" id="close-record-modal">&times;</span>
+          <div id="record-modal-title" class="modal-title"></div>
+          <div id="record-modal-content" class="modal-body"></div>
+        </div>
+      </div>
+      <!-- 기록 입력 팝업(모달) -->
+      <div id="calendar-add-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+          <span class="close" id="close-calendar-add-modal">&times;</span>
+          <div id="calendar-add-modal-date" class="modal-date"></div>
+          <form id="calendar-add-form" style="display:flex;flex-direction:column;gap:0.7em;">
+            <input type="text" id="calendar-add-title" placeholder="제목" required style="font-size:1.1em;padding:0.5em 1em;border-radius:0.7em;border:1px solid #a3bffa;" />
+            <textarea id="calendar-add-content" placeholder="내용" style="font-size:1.1em;padding:0.5em 1em;border-radius:0.7em;border:1px solid #a3bffa;resize:vertical;min-height:2em;"></textarea>
+            <div style="display:flex;gap:0.7em;">
+              <button type="submit" style="font-size:1.1em;padding:0.5em 1.2em;background:#a3bffa;color:#fff;border:none;border-radius:0.7em;">저장</button>
+              <button type="button" id="calendar-add-cancel" style="font-size:1.1em;padding:0.5em 1.2em;background:#eee;color:#444;border:none;border-radius:0.7em;">취소</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <!-- 년도/월 선택 팝업(모달) -->
+      <div id="year-month-picker-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+          <span class="close" id="close-year-month-picker">&times;</span>
+          <div class="modal-date">년도/월 선택</div>
+          <div style="display:flex;flex-direction:column;gap:1rem;width:100%;">
+            <div style="display:flex;gap:1rem;align-items:center;">
+              <label style="font-weight:bold;color:#a3bffa;">년도:</label>
+              <select id="year-picker" style="font-size:1.1em;padding:0.5em 1em;border-radius:0.7em;border:1px solid #a3bffa;background:#f0f4ff;">
+                <!-- JS에서 동적으로 생성 -->
+              </select>
+            </div>
+            <div style="display:flex;gap:1rem;align-items:center;">
+              <label style="font-weight:bold;color:#a3bffa;">월:</label>
+              <select id="month-picker" style="font-size:1.1em;padding:0.5em 1em;border-radius:0.7em;border:1px solid #a3bffa;background:#f0f4ff;">
+                <!-- JS에서 동적으로 생성 -->
+              </select>
+            </div>
+            <div style="display:flex;gap:0.7em;justify-content:center;margin-top:1rem;">
+              <button id="year-month-apply" style="font-size:1.1em;padding:0.5em 1.2em;background:#a3bffa;color:#fff;border:none;border-radius:0.7em;">적용</button>
+              <button id="year-month-cancel" style="font-size:1.1em;padding:0.5em 1.2em;background:#eee;color:#444;border:none;border-radius:0.7em;">취소</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+  
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyAhqHmLOSES-9ftzNAeVPbcnNve0mpWulc",
+      authDomain: "hj-memory.firebaseapp.com",
+      projectId: "hj-memory",
+      storageBucket: "hj-memory.firebasestorage.app",
+      messagingSenderId: "143143920252",
+      appId: "1:143143920252:web:cff78f7f582a6bc5181ff9",
+      measurementId: "G-SJR8MFBW69"
+    };
+  
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+  </script>
+</body>
+</html>

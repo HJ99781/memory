@@ -1,0 +1,340 @@
+body {
+  font-family: 'Pretendard', 'Noto Sans KR', Arial, sans-serif;
+  background: linear-gradient(135deg, #f8e8ee 0%, #e0f7fa 100%);
+  margin: 0;
+  min-height: 100vh;
+  color: #444;
+}
+.centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+#app h1 {
+  font-size: 2.5rem;
+  color: #a3bffa;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.1em;
+}
+form {
+  background: #fff8fa;
+  border-radius: 1.2rem;
+  box-shadow: 0 2px 16px rgba(163,191,250,0.12);
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 300px;
+}
+input, textarea, button {
+  font-size: 1rem;
+  border-radius: 0.7rem;
+  border: none;
+  padding: 0.8rem 1rem;
+  outline: none;
+}
+input, textarea {
+  background: #f0f4ff;
+  border: 1px solid #e0e7ff;
+  transition: border 0.2s;
+}
+input:focus, textarea:focus {
+  border: 1.5px solid #a3bffa;
+}
+button {
+  background: linear-gradient(90deg, #a3bffa 0%, #f8e8ee 100%);
+  color: #444;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  margin-top: 0.5rem;
+  transition: background 0.2s, color 0.2s;
+}
+button:hover {
+  background: linear-gradient(90deg, #f8e8ee 0%, #a3bffa 100%);
+  color: #222;
+}
+.error {
+  color: #ff6f91;
+  font-size: 0.95rem;
+  margin-top: 0.3rem;
+}
+.register-link {
+  margin-top: 1rem;
+  font-size: 1rem;
+  color: #a3bffa;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #e0f7fa;
+  padding: 1.2rem 2rem 0.7rem 2rem;
+  border-radius: 0 0 1.2rem 1.2rem;
+  box-shadow: 0 2px 8px rgba(163,191,250,0.08);
+}
+nav {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 1.5rem 0 1rem 0;
+}
+nav button {
+  background: #fff8fa;
+  color: #a3bffa;
+  border: 1.5px solid #a3bffa;
+  font-size: 1.1rem;
+  padding: 0.7rem 1.5rem;
+}
+nav button.active, nav button:focus {
+  background: #a3bffa;
+  color: #fff;
+}
+#record-form-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+#record-form {
+  width: 100%;
+  max-width: 500px;
+}
+#record-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 600px;
+}
+#record-list li {
+  background: #f0f4ff;
+  margin-bottom: 1rem;
+  border-radius: 1rem;
+  padding: 1.2rem 1.5rem;
+  box-shadow: 0 1px 6px rgba(163,191,250,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+}
+#record-list .record-actions {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.5rem;
+}
+#record-list button {
+  padding: 0.4rem 1rem;
+  font-size: 0.95rem;
+  border-radius: 0.5rem;
+  background: #a3bffa;
+  color: #fff;
+  border: none;
+}
+#record-list button.delete {
+  background: #ffb6b9;
+}
+#calendar-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+#calendar {
+  background: #fff8fa;
+  border-radius: 1.2rem;
+  box-shadow: 0 2px 16px rgba(163,191,250,0.10);
+  padding: 3rem;
+  min-width: 420px;
+  max-width: 700px;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 1rem;
+  height: 660px;
+  min-height: 660px;
+  max-height: 660px;
+}
+.calendar-day {
+  height: 100px;
+  min-height: 100px;
+  max-height: 100px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #f0f4ff;
+  border-radius: 0.7rem;
+  min-width: 0;
+  max-width: 100%;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 1.1rem;
+  position: relative;
+  box-sizing: border-box;
+}
+.calendar-day.today {
+  border: 2px solid #a3bffa;
+  background: #e0f7fa;
+}
+.calendar-day .day-number {
+  font-weight: bold;
+  color: #a3bffa;
+  margin-bottom: 0.2rem;
+}
+.calendar-day.holiday .day-number {
+  color: #ff6f91;
+}
+.calendar-day .record-title {
+  font-size: 1.05rem;
+  color: #ff6f91;
+  margin-top: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90%;
+  min-width: 0;
+  width: 10.5em;
+  /* 10글자 이상 보이도록 */
+}
+.modal {
+  position: fixed;
+  z-index: 1000;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  background: rgba(163,191,250,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  background: #fff8fa;
+  border-radius: 1.2rem;
+  box-shadow: 0 4px 32px rgba(163,191,250,0.18);
+  padding: 2.5rem 2rem 2rem 2rem;
+  min-width: 320px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.close {
+  position: absolute;
+  right: 1.2rem;
+  top: 1.2rem;
+  font-size: 2rem;
+  color: #a3bffa;
+  cursor: pointer;
+  font-weight: bold;
+}
+.modal-date {
+  font-size: 1.3rem;
+  color: #a3bffa;
+  margin-bottom: 1.2rem;
+  font-weight: bold;
+}
+#calendar-modal-records {
+  list-style: none;
+  padding: 0;
+  width: 100%;
+}
+#calendar-modal-records li {
+  font-size: 1.15rem;
+  color: #ff6f91;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  padding: 0.7rem 1rem;
+  border-radius: 0.7rem;
+  background: #e0f7fa;
+  transition: background 0.2s;
+}
+#calendar-modal-records li:hover {
+  background: #a3bffa;
+  color: #fff;
+}
+.modal-title {
+  font-size: 1.3rem;
+  color: #a3bffa;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+.modal-body {
+  font-size: 1.1rem;
+  color: #444;
+  white-space: pre-line;
+}
+/* 달력 확대 모달이 열릴 때 메인 UI 숨김 */
+body.calendar-modal-open #main-section nav,
+body.calendar-modal-open #record-form-section,
+body.calendar-modal-open #record-form-section *,
+body.calendar-modal-open #record-form {
+  display: none !important;
+}
+body.calendar-modal-open #calendar-section {
+  flex: 1 1 100%;
+  margin: 0;
+}
+body.calendar-modal-open #calendar-modal {
+  z-index: 2000;
+}
+/* 리스트 뷰: 리스트만 보이게 */
+body.list-view #record-form-section,
+body.list-view #calendar-section {
+  display: none !important;
+}
+body.list-view #list-section {
+  display: block !important;
+}
+/* 달력 뷰: 달력만 보이게 */
+body.calendar-view #record-form-section,
+body.calendar-view #list-section {
+  display: none !important;
+}
+body.calendar-view #calendar-section {
+  display: flex !important;
+}
+.highlight {
+  background: #fff59d;
+  color: #222;
+  border-radius: 0.3em;
+  padding: 0 0.1em;
+}
+@media (max-width: 600px) {
+  form, #calendar {
+    min-width: unset;
+    padding: 1rem;
+  }
+  #record-list li {
+    padding: 0.7rem 0.7rem;
+  }
+  .calendar-day {
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
+    font-size: 0.95rem;
+  }
+  .modal-content {
+    min-width: unset;
+    padding: 1.2rem 0.7rem 1rem 0.7rem;
+  }
+}
+@media (max-width: 900px) {
+  #calendar {
+    min-width: 320px;
+    max-width: 98vw;
+    padding: 1.2rem;
+  }
+  .calendar-grid {
+    height: 420px;
+    min-height: 420px;
+    max-height: 420px;
+  }
+  .calendar-day {
+    height: 60px;
+    min-height: 60px;
+    max-height: 60px;
+  }
+}
