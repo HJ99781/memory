@@ -1,3 +1,24 @@
+// --- Firebase 초기화 및 SDK import ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+// Firebase 설정
+const firebaseConfig = {
+  apiKey: "AIzaSyAhqHmLOSES-9ftzNAeVPbcnNve0mpWulc",
+  authDomain: "hj-memory.firebaseapp.com",
+  projectId: "hj-memory",
+  storageBucket: "hj-memory.firebasestorage.app",
+  messagingSenderId: "143143920252",
+  appId: "1:143143920252:web:cff78f7f582a6bc5181ff9",
+  measurementId: "G-SJR8MFBW69"
+};
+
+// Firebase 초기화
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 // --- 유틸리티: 날짜 포맷 (한국 기준) ---
 function getTodayStr() {
   const now = new Date();
@@ -5,31 +26,115 @@ function getTodayStr() {
   return now.toISOString().slice(0, 10);
 }
 
-// --- 계정/기록 데이터 LocalStorage 관리 ---
-function getUsers() {
-  return JSON.parse(localStorage.getItem('memory-users') || '{}');
+// --- Firebase 데이터 관리 함수들 ---
+async function getCurrentUser() {
+  return auth.currentUser?.email;
 }
-function setUsers(users) {
-  localStorage.setItem('memory-users', JSON.stringify(users));
+
+async function createUserAccount(email, password) {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    
+    // 사용자 문서 생성
+    await setDoc(doc(db, "users", user.uid), {
+      email: user.email,
+      createdAt: new Date()
+    });
+    
+    return { success: true, user };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 }
-function getCurrentUser() {
-  return localStorage.getItem('memory-current-user');
+
+async function signInUser(email, password) {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return { success: true, user: userCredential.user };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 }
-function setCurrentUser(username) {
-  localStorage.setItem('memory-current-user', username);
+
+async function signOutUser() {
+  try {
+    await signOut(auth);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 }
-function clearCurrentUser() {
-  localStorage.removeItem('memory-current-user');
+
+async function getRecords() {
+  try {
+    const user = auth.currentUser;
+    if (!user) return [];
+    
+    const recordsRef = collection(db, "records");
+    const q = query(recordsRef, where("userId", "==", user.uid));
+    const querySnapshot = await getDocs(q);
+    
+    const records = [];
+    querySnapshot.forEach((doc) => {
+      records.push({ id: doc.id, ...doc.data() });
+    });
+    
+    return records;
+  } catch (error) {
+    console.error("Error getting records:", error);
+    return [];
+  }
 }
-function getRecords(username) {
-  const users = getUsers();
-  return users[username]?.records || [];
+
+async function addRecord(record) {
+  try {
+    const user = auth.currentUser;
+    if (!user) return { success: false, error: "User not authenticated" };
+    
+    const recordData = {
+      ...record,
+      userId: user.uid,
+      createdAt: new Date()
+    };
+    
+    const docRef = await addDoc(collection(db, "records"), recordData);
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error("Error adding record:", error);
+    return { success: false, error: error.message };
+  }
 }
-function setRecords(username, records) {
-  const users = getUsers();
-  if (!users[username]) return;
-  users[username].records = records;
-  setUsers(users);
+
+async function updateRecord(recordId, recordData) {
+  try {
+    const user = auth.currentUser;
+    if (!user) return { success: false, error: "User not authenticated" };
+    
+    const recordRef = doc(db, "records", recordId);
+    await updateDoc(recordRef, {
+      ...recordData,
+      updatedAt: new Date()
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating record:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function deleteRecord(recordId) {
+  try {
+    const user = auth.currentUser;
+    if (!user) return { success: false, error: "User not authenticated" };
+    
+    await deleteDoc(doc(db, "records", recordId));
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting record:", error);
+    return { success: false, error: error.message };
+  }
 }
 
 // --- 로그인/회원가입 로직 ---
@@ -55,43 +160,57 @@ showLogin.onclick = (e) => {
   loginSection.style.display = 'flex';
 };
 
-loginForm.onsubmit = (e) => {
+loginForm.onsubmit = async (e) => {
   e.preventDefault();
-  const username = document.getElementById('login-username').value.trim();
+  const email = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
-  const users = getUsers();
-  if (!users[username] || users[username].password !== password) {
+  
+  if (!email.includes('@')) {
+    loginError.textContent = '이메일 형식으로 입력해주세요.';
+    return;
+  }
+  
+  const result = await signInUser(email, password);
+  if (result.success) {
+    loginError.textContent = '';
+    showMain();
+  } else {
     loginError.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
-    return;
   }
-  setCurrentUser(username);
-  loginError.textContent = '';
-  showMain();
 };
 
-registerForm.onsubmit = (e) => {
+registerForm.onsubmit = async (e) => {
   e.preventDefault();
-  const username = document.getElementById('register-username').value.trim();
+  const email = document.getElementById('register-username').value.trim();
   const password = document.getElementById('register-password').value;
-  if (!username || !password) {
-    registerError.textContent = '아이디와 비밀번호를 입력하세요.';
+  
+  if (!email.includes('@')) {
+    registerError.textContent = '이메일 형식으로 입력해주세요.';
     return;
   }
-  const users = getUsers();
-  if (users[username]) {
-    registerError.textContent = '이미 존재하는 아이디입니다.';
+  
+  if (password.length < 6) {
+    registerError.textContent = '비밀번호는 6자 이상이어야 합니다.';
     return;
   }
-  users[username] = { password, records: [] };
-  setUsers(users);
-  registerError.textContent = '';
-  alert('회원가입이 완료되었습니다! 로그인 해주세요.');
-  registerSection.style.display = 'none';
-  loginSection.style.display = 'flex';
+  
+  const result = await createUserAccount(email, password);
+  if (result.success) {
+    registerError.textContent = '';
+    alert('회원가입이 완료되었습니다! 로그인 해주세요.');
+    registerSection.style.display = 'none';
+    loginSection.style.display = 'flex';
+  } else {
+    if (result.error.includes('email-already-in-use')) {
+      registerError.textContent = '이미 존재하는 이메일입니다.';
+    } else {
+      registerError.textContent = '회원가입 중 오류가 발생했습니다.';
+    }
+  }
 };
 
-logoutBtn.onclick = () => {
-  clearCurrentUser();
+logoutBtn.onclick = async () => {
+  await signOutUser();
   showLoginSection();
 };
 
@@ -100,12 +219,13 @@ function showLoginSection() {
   loginSection.style.display = 'flex';
   registerSection.style.display = 'none';
 }
-function showMain() {
+
+async function showMain() {
   loginSection.style.display = 'none';
   registerSection.style.display = 'none';
   mainSection.style.display = 'block';
-  renderRecords();
-  renderCalendar();
+  await renderRecords();
+  await renderCalendar();
   setView('list');
 }
 
@@ -143,25 +263,30 @@ function setView(view) {
   }
 }
 
-recordForm.onsubmit = (e) => {
+recordForm.onsubmit = async (e) => {
   e.preventDefault();
   const title = recordTitle.value.trim();
   const content = recordContent.value.trim();
   const date = recordDate.value;
   if (!title || !content || !date) return;
-  const username = getCurrentUser();
-  let records = getRecords(username);
+  
   if (editId) {
-    records = records.map(r => r.id === editId ? { ...r, title, content, date } : r);
-    editId = null;
-    cancelEditBtn.style.display = 'none';
+    const result = await updateRecord(editId, { title, content, date });
+    if (result.success) {
+      editId = null;
+      cancelEditBtn.style.display = 'none';
+      recordForm.reset();
+      await renderRecords();
+      await renderCalendar();
+    }
   } else {
-    records.push({ id: Date.now().toString(), title, content, date });
+    const result = await addRecord({ title, content, date });
+    if (result.success) {
+      recordForm.reset();
+      await renderRecords();
+      await renderCalendar();
+    }
   }
-  setRecords(username, records);
-  recordForm.reset();
-  renderRecords();
-  renderCalendar();
 };
 
 cancelEditBtn.onclick = () => {
@@ -190,23 +315,25 @@ let recordPage = 1;
 const RECORDS_PER_PAGE = 20;
 const recordPagination = document.getElementById('record-pagination');
 
-function renderRecords(page) {
-  const username = getCurrentUser();
-  let records = getRecords(username).sort((a, b) => b.date.localeCompare(a.date));
+async function renderRecords(page) {
+  const records = await getRecords();
+  let filteredRecords = records.sort((a, b) => b.date.localeCompare(a.date));
+  
   if (searchKeyword) {
-    records = records.filter(record =>
+    filteredRecords = filteredRecords.filter(record =>
       record.title.toLowerCase().includes(searchKeyword) ||
       record.content.toLowerCase().includes(searchKeyword)
     );
   }
+  
   // 페이지네이션
-  const total = records.length;
+  const total = filteredRecords.length;
   const totalPages = Math.max(1, Math.ceil(total / RECORDS_PER_PAGE));
   recordPage = page || recordPage || 1;
   if (recordPage > totalPages) recordPage = totalPages;
   const startIdx = (recordPage - 1) * RECORDS_PER_PAGE;
   const endIdx = startIdx + RECORDS_PER_PAGE;
-  const pageRecords = records.slice(startIdx, endIdx);
+  const pageRecords = filteredRecords.slice(startIdx, endIdx);
 
   recordList.innerHTML = '';
   if (pageRecords.length === 0) {
@@ -232,16 +359,19 @@ function renderRecords(page) {
         cancelEditBtn.style.display = 'inline-block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
       };
-      li.querySelector('.delete').onclick = () => {
+      li.querySelector('.delete').onclick = async () => {
         if (confirm('정말 삭제하시겠습니까?')) {
-          setRecords(username, records.filter(r => r.id !== record.id));
-          renderRecords(1);
-          renderCalendar();
+          const result = await deleteRecord(record.id);
+          if (result.success) {
+            await renderRecords(1);
+            await renderCalendar();
+          }
         }
       };
       recordList.appendChild(li);
     });
   }
+  
   // 페이지네이션 UI
   if (recordPagination) {
     recordPagination.innerHTML = '';
@@ -437,18 +567,18 @@ function closeCalendarAddModal() {
 }
 document.getElementById('close-calendar-add-modal').onclick = closeCalendarAddModal;
 calendarAddCancel.onclick = closeCalendarAddModal;
-calendarAddForm.onsubmit = function(e) {
+calendarAddForm.onsubmit = async function(e) {
   e.preventDefault();
   const title = calendarAddTitle.value.trim();
   const content = calendarAddContent.value.trim();
   if (!title || !calendarAddTargetDate) return;
-  const username = getCurrentUser();
-  let records = getRecords(username);
-  records.push({ id: Date.now().toString(), title, content, date: calendarAddTargetDate });
-  setRecords(username, records);
-  closeCalendarAddModal();
-  renderCalendar(calendarYear, calendarMonth);
-  renderRecords();
+  
+  const result = await addRecord({ title, content, date: calendarAddTargetDate });
+  if (result.success) {
+    closeCalendarAddModal();
+    await renderCalendar(calendarYear, calendarMonth);
+    await renderRecords();
+  }
 };
 // 모달 바깥 클릭 시 닫기
 window.addEventListener('click', function(e) {
@@ -505,9 +635,8 @@ window.addEventListener('click', function(e) {
 });
 
 // --- 달력 렌더링 함수 ---
-function renderCalendar(year, month) {
-  const username = getCurrentUser();
-  const records = getRecords(username);
+async function renderCalendar(year, month) {
+  const records = await getRecords();
   const calendar = document.getElementById('calendar');
   const today = new Date();
   today.setHours(today.getHours() + 9 - today.getTimezoneOffset() / 60); // KST
@@ -589,29 +718,30 @@ function changeMonth(diff) {
 }
 
 // --- 달력 확대 모달 ---
-function showCalendarModal(date, year, month) {
+async function showCalendarModal(date, year, month) {
   const modal = document.getElementById('calendar-modal');
   const modalDate = document.getElementById('calendar-modal-date');
   const modalRecords = document.getElementById('calendar-modal-records');
-  const username = getCurrentUser();
-  let records = getRecords(username);
+  const records = await getRecords();
   let title = '';
+  let filteredRecords = [];
+  
   if (date) {
-    records = records.filter(r => r.date === date);
+    filteredRecords = records.filter(r => r.date === date);
     title = date + ' 기록';
   } else if (year !== undefined && month !== undefined) {
     // 월 전체
     const y = year;
     const m = month + 1;
-    records = records.filter(r => r.date.startsWith(`${y}-${String(m).padStart(2,'0')}`));
+    filteredRecords = records.filter(r => r.date.startsWith(`${y}-${String(m).padStart(2,'0')}`));
     title = `${y}년 ${m}월 기록`;
   }
   modalDate.textContent = title;
   modalRecords.innerHTML = '';
-  if (records.length === 0) {
+  if (filteredRecords.length === 0) {
     modalRecords.innerHTML = '<li>기록이 없습니다.</li>';
   } else {
-    records.forEach(r => {
+    filteredRecords.forEach(r => {
       const li = document.createElement('li');
       li.textContent = r.title;
       li.onclick = () => showRecordModal(r.title, r.content);
@@ -646,14 +776,19 @@ window.addEventListener('click', function(e) {
   if (e.target === recordModal) recordModal.style.display = 'none';
 });
 
-// --- 초기 진입 시 로그인 상태 확인 ---
-window.onload = () => {
-  const username = getCurrentUser();
-  if (username && getUsers()[username]) {
+// --- Firebase 인증 상태 감지 ---
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // 로그인된 상태
     showMain();
   } else {
+    // 로그아웃된 상태
     showLoginSection();
   }
+});
+
+// --- 초기 진입 시 로그인 상태 확인 ---
+window.onload = () => {
   recordDate.value = getTodayStr();
 };
 
@@ -665,19 +800,19 @@ if (listQuickAddForm) {
   const listQuickDate = document.getElementById('list-quick-date');
   // 오늘 날짜 기본값
   listQuickDate.value = getTodayStr();
-  listQuickAddForm.onsubmit = function(e) {
+  listQuickAddForm.onsubmit = async function(e) {
     e.preventDefault();
     const title = listQuickTitle.value.trim();
     const content = listQuickContent.value.trim();
     const date = listQuickDate.value;
     if (!title || !date) return;
-    const username = getCurrentUser();
-    let records = getRecords(username);
-    records.push({ id: Date.now().toString(), title, content, date });
-    setRecords(username, records);
-    listQuickAddForm.reset();
-    listQuickDate.value = getTodayStr();
-    renderRecords();
-    renderCalendar();
+    
+    const result = await addRecord({ title, content, date });
+    if (result.success) {
+      listQuickAddForm.reset();
+      listQuickDate.value = getTodayStr();
+      await renderRecords();
+      await renderCalendar();
+    }
   };
 }
